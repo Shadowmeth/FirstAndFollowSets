@@ -2,7 +2,7 @@
 {
     public class Program
     {
-        private static Dictionary<string, List<string>> productionRules =
+        private static Dictionary<string, List<string>> ProductionRules =
             new Dictionary<string, List<string>>();
         private static string[]? rulesList;
         private static Dictionary<string, HashSet<string>> firstSets =
@@ -35,10 +35,36 @@
             return component != null && component == "<epsilon>";
         }
 
+        // see if the specific nonterminal occurs in the production rule
+        public static bool productionRuleHasNonTerminal(string nonterminal, string prodRule)
+        {
+            string[] components = getComponents(prodRule);
+            return components.Contains(nonterminal);
+        }
+
+        public static List<string> getProdRulesWithNonTerminal(string nonterminal)
+        {
+            List<string> result = new List<string>();
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
+            {
+                string lhs = kvp.Key;
+                List<string> rules = ProductionRules[lhs];
+                foreach (string prodRule in rules)
+                {
+                    if (productionRuleHasNonTerminal(nonterminal, prodRule))
+                    {
+                        result.Add(prodRule);
+                    }
+                }
+            }
+
+            return result;
+        }
+
         public static bool nonTerminalHasEpsilon(string nonterminal)
         {
             bool hasEpsilon = false;
-            List<string> prodRules = productionRules[nonterminal];
+            List<string> prodRules = ProductionRules[nonterminal];
             foreach (string rule in prodRules)
             {
                 string[] components = getComponents(rule);
@@ -77,7 +103,7 @@
         public static HashSet<string> calcFirstSet(string nonterminal)
         {
             HashSet<string> firstSet = new HashSet<string>();
-            List<string> prodRules = productionRules[nonterminal];
+            List<string> prodRules = ProductionRules[nonterminal];
 
             if (prodRules != null && prodRules.Count == 0)
             {
@@ -166,32 +192,32 @@
                 );
                 System.Diagnostics.Debug.Assert(rule.Length == 2, "rule length must be 2!");
                 string rhs = rule[1].Trim();
-                if (!productionRules.ContainsKey(rule[0]))
+                if (!ProductionRules.ContainsKey(rule[0]))
                 {
                     List<string> temp = new List<string>();
                     temp.Add(rhs);
-                    productionRules.Add(rule[0], temp);
+                    ProductionRules.Add(rule[0], temp);
                 }
                 else
                 {
-                    productionRules[rule[0]].Add(rhs);
+                    ProductionRules[rule[0]].Add(rhs);
                 }
             }
         }
 
         public static void calcFirstSets()
         {
-            foreach (KeyValuePair<string, List<string>> kvp in productionRules)
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
             {
                 firstSets.Add(kvp.Key, new HashSet<string>());
             }
 
-            foreach (KeyValuePair<string, List<string>> kvp in productionRules)
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
             {
                 firstSets[kvp.Key].UnionWith(calcFirstSet(kvp.Key));
             }
 
-            foreach (KeyValuePair<string, List<string>> kvp in productionRules)
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
             {
                 if (!nonTerminalHasEpsilon(kvp.Key))
                 {
@@ -206,7 +232,7 @@
             Console.ForegroundColor = ConsoleColor.DarkRed;
 
             Console.WriteLine("PRINTING PRODUCTION RULES!");
-            foreach (KeyValuePair<string, List<string>> kvp in productionRules)
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
             {
                 Console.WriteLine(kvp.Key);
                 foreach (string prodRule in kvp.Value)
@@ -236,6 +262,207 @@
             Console.ForegroundColor = origColor;
         }
 
+        public static int findNTIndex(string[] components, string nt)
+        {
+            for (int i = 0; i < components.Length; i++)
+            {
+                if (components[i] == nt)
+                {
+                    return i;
+                }
+            }
+
+            System.Console.Error.WriteLine("UNREACHABLE CODE PATH REACHED IN findNTIndex()");
+            System.Environment.Exit(1);
+            return -1; // NOTE: this will never be reached
+        }
+
+        public static string getNTForProductionRule(string productionRule)
+        {
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
+            {
+                foreach (string rule in ProductionRules[kvp.Key])
+                {
+                    if (productionRule == rule)
+                    {
+                        return kvp.Key;
+                    }
+                }
+            }
+
+            System.Console.Error.WriteLine(
+                "UNREACHABLE CODE PATH REACHED IN getNTForProductionRule()"
+            );
+            System.Environment.Exit(1);
+            return ""; // NOTE: this will never be reached
+        }
+
+        public static bool firstSetContainsEpsilon(string nonterminal)
+        {
+            return firstSets[nonterminal].Contains("<epsilon>");
+        }
+
+        public static HashSet<string> calcFollowSet(
+            string nonterminal,
+            Dictionary<string, List<string>> occurrences
+        )
+        {
+            HashSet<string> followSet = new HashSet<string>();
+            foreach (KeyValuePair<string, List<string>> kvp in occurrences)
+            {
+                if (occurrences[kvp.Key].Count == 0)
+                {
+                    return followSet;
+                }
+            }
+            // 2 possibilities:
+            // 1. if there is a production of form <B> -> <alpha> <A> <beta> then First(beta) - { <epsilon> } is in Follow(A)
+            // unless <beta> is a terminal then it comes as is in Follow(A)
+            // 2. if there is a production of form <B> -> <alpha> <A> <beta> such that <epsilon> is in First(beta) then Follow(A)
+            // contains Follow(B)
+
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
+            {
+                string nt = nonterminal; // nonterminal whose follow set we need to find
+                List<string> occurrenceRules = occurrences[nt]; // all the production rules in which nt occurs at RHS
+
+                // couldn't filter out bad production rules in calcFollowSets
+                // so we just return the empty Dictionary here
+                if (occurrenceRules.Count == 0)
+                {
+                    return followSet;
+                }
+                if (occurrenceRules.Count == 1 && occurrenceRules[0] == nt)
+                {
+                    return followSet;
+                }
+
+                foreach (string rule in occurrenceRules)
+                {
+                    string[] components = getComponents(rule);
+                    // find index of nt in components
+                    // this will never be -1 because we are ensuring only searching production rules
+                    // which contain nt
+                    int index = findNTIndex(components, nt);
+                    string component = components[index];
+                    if (index == components.Length - 1)
+                    {
+                        // nt is in the end of production rule
+                        // Follow(nt) = Follow(lhs)
+                        string lhs = getNTForProductionRule(rule);
+                        if (lhs == nt)
+                        {
+                            continue;
+                        }
+                        // lhs is the start symbol
+                        if (followSets[lhs].Contains("$"))
+                        {
+                            followSet.Add("$");
+                        }
+                        followSet.UnionWith(calcFollowSet(lhs, occurrences));
+                    }
+                    else if (
+                        index == components.Length - 2
+                        && isComponentNonTerminal(components[index + 1])
+                    )
+                    {
+                        if (firstSetContainsEpsilon(components[index + 1]))
+                        {
+                            followSet.UnionWith(firstSets[components[index + 1]]);
+                            string lhs = getNTForProductionRule(rule);
+                            followSet.UnionWith(firstSets[lhs]);
+                            followSet.Remove("<epsilon>");
+                        }
+                        else
+                        {
+                            followSet.UnionWith(firstSets[components[index + 1]]);
+                        }
+                    }
+                    else if (
+                        index == components.Length - 2
+                        && isComponentTerminal(components[index + 1])
+                    )
+                    {
+                        followSet.Add(components[index + 1]);
+                    }
+                    else if (isComponentTerminal(components[index + 1]))
+                    {
+                        followSet.Add(components[index + 1]);
+                    }
+                    else if (isComponentNonTerminal(components[index + 1]))
+                    {
+                        if (firstSetContainsEpsilon(components[index + 1]))
+                        {
+                            // NOTE: possible issue:
+                            // what if there are two non terminals with firstSet containing epsilon?
+                            followSet.UnionWith(firstSets[components[index + 1]]);
+                            followSet.Remove("<epsilon>");
+                        }
+                        else
+                        {
+                            followSet.UnionWith(firstSets[components[index + 1]]);
+                        }
+                    }
+                }
+            }
+
+            return followSet;
+        }
+
+        public static void calcFollowSets()
+        {
+            // for each nonterminal we need to get the production rules in which that
+            // nonterminal occurs and then calculate the follow set
+            Dictionary<string, List<string>> occurrences = new Dictionary<string, List<string>>();
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
+            {
+                occurrences.Add(kvp.Key, getProdRulesWithNonTerminal(kvp.Key));
+            }
+
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
+            {
+                followSets.Add(kvp.Key, new HashSet<string>());
+            }
+
+            // foreach (KeyValuePair<string, List<string>> kvp in occurrences)
+            // {
+            //     Console.WriteLine(kvp.Key);
+            //     List<string> rules = kvp.Value;
+            //     foreach (string rule in rules)
+            //     {
+            //         Console.WriteLine("\t" + rule);
+            //     }
+            // }
+            // Console.WriteLine();
+
+            HashSet<string> temp = new HashSet<string>();
+            temp.Add("$");
+            followSets[ProductionRules.Keys.ElementAt(0)].UnionWith(temp);
+
+            foreach (KeyValuePair<string, List<string>> kvp in ProductionRules)
+            {
+                followSets[kvp.Key].UnionWith(calcFollowSet(kvp.Key, occurrences));
+            }
+        }
+
+        public static void printFollowSets()
+        {
+            ConsoleColor origColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+
+            Console.WriteLine("PRINTING FOLLOW SETS!");
+            foreach (KeyValuePair<string, HashSet<string>> kvp in followSets)
+            {
+                Console.WriteLine(kvp.Key);
+                foreach (string follow in kvp.Value)
+                {
+                    Console.WriteLine("\t" + follow);
+                }
+                Console.WriteLine();
+            }
+            Console.ForegroundColor = origColor;
+        }
+
         public static void Main(string[] args)
         {
             rulesList = File.ReadAllLines("grammar.txt");
@@ -243,6 +470,8 @@
             printProductionRules();
             calcFirstSets();
             printFirstSets();
+            calcFollowSets();
+            printFollowSets();
         }
     }
 }
