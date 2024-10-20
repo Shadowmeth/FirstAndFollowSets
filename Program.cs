@@ -161,8 +161,25 @@
             }
         }
 
+        public static void calcFirstSets()
+        {
+            foreach (KeyValuePair<string, List<string>> kvp in productionRules)
+            {
+                firstSets.Add(kvp.Key, new HashSet<string>());
+            }
+
+            foreach (KeyValuePair<string, List<string>> kvp in productionRules)
+            {
+                firstSets[kvp.Key].UnionWith(calcFirstSet(kvp.Key));
+            }
+        }
+
         public static void printProductionRules()
         {
+            ConsoleColor origColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+
+            Console.WriteLine("PRINTING PRODUCTION RULES!");
             foreach (KeyValuePair<string, List<string>> kvp in productionRules)
             {
                 Console.WriteLine(kvp.Key);
@@ -172,6 +189,25 @@
                 }
                 Console.WriteLine();
             }
+            Console.ForegroundColor = origColor;
+        }
+
+        public static void printFirstSets()
+        {
+            ConsoleColor origColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+
+            Console.WriteLine("PRINTING FIRST SETS!");
+            foreach (KeyValuePair<string, HashSet<string>> kvp in firstSets)
+            {
+                Console.WriteLine(kvp.Key);
+                foreach (string first in kvp.Value)
+                {
+                    Console.WriteLine("\t" + first);
+                }
+                Console.WriteLine();
+            }
+            Console.ForegroundColor = origColor;
         }
 
         public static void Main(string[] args)
@@ -179,12 +215,8 @@
             rulesList = File.ReadAllLines("grammar.txt");
             expandProductionRules();
             printProductionRules();
-            firstSets["<exp>"] = calcFirstSet("<exp>");
-            Console.WriteLine("Printing first sets: ");
-            foreach (string first in firstSets["<exp>"])
-            {
-                Console.WriteLine(first);
-            }
+            calcFirstSets();
+            printFirstSets();
         }
     }
 }
