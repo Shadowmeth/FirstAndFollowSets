@@ -3,8 +3,9 @@
 <exp'> -> <epsilon>
 <addop> -> "+"
 <addop> -> "-"
-<term> -> <term> <mulop> <factor>
-<term> -> <factor>
+<term> -> <factor> <term'>
+<term'> -> <mulop> <factor> <term'>
+<term'> -> <epsilon>
 <mulop> -> "*"
 <factor> -> "(" <exp> ")"
 <factor> -> "0"
