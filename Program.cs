@@ -308,13 +308,6 @@
         )
         {
             HashSet<string> followSet = new HashSet<string>();
-            foreach (KeyValuePair<string, List<string>> kvp in occurrences)
-            {
-                if (occurrences[kvp.Key].Count == 0)
-                {
-                    return followSet;
-                }
-            }
             // 2 possibilities:
             // 1. if there is a production of form <B> -> <alpha> <A> <beta> then First(beta) - { <epsilon> } is in Follow(A)
             // unless <beta> is a terminal then it comes as is in Follow(A)
