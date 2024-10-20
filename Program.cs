@@ -120,14 +120,32 @@
                     {
                         firstSets[nonterminal].Add("<epsilon>");
                     }
+
                     if (components.Length >= 2 && !nonTerminalHasEpsilon(components[0]))
                     {
                         firstSet.UnionWith(calcFirstSet(components[0]));
                     }
-                    else if (components.Length >= 2 && nonTerminalHasEpsilon(components[0]))
+                    else if (
+                        components.Length >= 2
+                        && nonTerminalHasEpsilon(components[0])
+                        && isComponentNonTerminal(components[1])
+                    )
                     {
                         firstSet.UnionWith(calcFirstSet(components[0]));
                         firstSet.UnionWith(calcFirstSet(components[1]));
+                    }
+                    else if (
+                        components.Length >= 2
+                        && nonTerminalHasEpsilon(components[0])
+                        && isComponentTerminal(components[1])
+                    )
+                    {
+                        firstSet.UnionWith(calcFirstSet(components[0]));
+                        firstSet.Add(components[1]);
+                    }
+                    else if (components.Length == 1)
+                    {
+                        firstSet.UnionWith(calcFirstSet(components[0]));
                     }
                 }
             }
@@ -171,6 +189,14 @@
             foreach (KeyValuePair<string, List<string>> kvp in productionRules)
             {
                 firstSets[kvp.Key].UnionWith(calcFirstSet(kvp.Key));
+            }
+
+            foreach (KeyValuePair<string, List<string>> kvp in productionRules)
+            {
+                if (!nonTerminalHasEpsilon(kvp.Key))
+                {
+                    firstSets[kvp.Key].Remove("<epsilon>");
+                }
             }
         }
 
