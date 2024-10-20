@@ -1,5 +1,6 @@
-<exp> -> <exp> <addop> <term>
-<exp> -> <term>
+<exp> -> <term> <exp'>
+<exp'> -> <addop> <term> <exp'>
+<exp'> -> <epsilon>
 <addop> -> "+"
 <addop> -> "-"
 <term> -> <term> <mulop> <factor>
