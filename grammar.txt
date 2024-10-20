@@ -4,7 +4,7 @@
 <addop> -> "-"
 <term> -> <term> <mulop> <factor>
 <term> -> <factor>
-<mulop> -> *
+<mulop> -> "*"
 <factor> -> "(" <exp> ")"
 <factor> -> "0"
 <factor> -> "1"
