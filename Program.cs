@@ -29,11 +29,8 @@
             }
         }
 
-        public static void Main(String[] args)
+        public static void printProductionRules()
         {
-            rulesList = File.ReadAllLines("grammar.txt");
-            expandProductionRules();
-
             foreach (KeyValuePair<String, List<String>> kvp in productionRules)
             {
                 Console.WriteLine(kvp.Key);
@@ -42,6 +39,13 @@
                     Console.WriteLine("\t" + prodRule);
                 }
             }
+        }
+
+        public static void Main(String[] args)
+        {
+            rulesList = File.ReadAllLines("grammar.txt");
+            expandProductionRules();
+            printProductionRules();
         }
     }
 }
